@@ -1,0 +1,97 @@
+package com.example.OnlineHelpDesk.controller;
+
+import com.example.OnlineHelpDesk.model.Facility;
+import com.example.OnlineHelpDesk.model.Request;
+import com.example.OnlineHelpDesk.model.Role;
+import com.example.OnlineHelpDesk.model.User;
+import com.example.OnlineHelpDesk.repository.FacilityRepository;
+import com.example.OnlineHelpDesk.repository.RequestRepository;
+import com.example.OnlineHelpDesk.repository.UserRepository;
+import com.example.OnlineHelpDesk.vo.MessageResponseVo;
+import com.example.OnlineHelpDesk.vo.RegisterUserRequestVo;
+import com.example.OnlineHelpDesk.vo.UserInfoResponseVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@CrossOrigin(origins = "*")
+@RestController
+public class UserController {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private FacilityRepository facilityRepository;
+
+    @Autowired
+    private RequestRepository requestRepository;
+
+    @GetMapping("/admin/facility-head")
+    public ResponseEntity<?> getFacilityHead() {
+        List<UserInfoResponseVo> facility_head_response = new ArrayList<>();
+        List<User> facility_head = userRepository.findAllByRole(Role.FACILITY_HEAD);
+        for (User user : facility_head) {
+            UserInfoResponseVo userInfoResponseVo = new UserInfoResponseVo();
+            userInfoResponseVo.setId(user.getId());
+            userInfoResponseVo.setEmail(user.getUsername());
+            userInfoResponseVo.setName(user.getFirstName() + " " + user.getLastName());
+            userInfoResponseVo.setFirstName(user.getFirstName());
+            userInfoResponseVo.setLastName(user.getLastName());
+            userInfoResponseVo.setFacilityId(user.getFacilityId());
+            Facility facility = facilityRepository.findById(user.getFacilityId()).get();
+            userInfoResponseVo.setFacility(facility.getName());
+            facility_head_response.add(userInfoResponseVo);
+        }
+        return ResponseEntity.ok(facility_head_response);
+    }
+
+    @GetMapping("/facility-head/assignee")
+    public ResponseEntity<?> getAssignee(Authentication authentication) {
+        List<UserInfoResponseVo> assignee_response = new ArrayList<>();
+        User facilityHead = (User) authentication.getPrincipal();
+        List<User> facility_worker = userRepository.findAllByRoleAndFacilityId(Role.ASSIGNEE, facilityHead.getFacilityId());
+        for (User user : facility_worker) {
+            UserInfoResponseVo userInfoResponseVo = new UserInfoResponseVo();
+            userInfoResponseVo.setId(user.getId());
+            userInfoResponseVo.setEmail(user.getUsername());
+            userInfoResponseVo.setName(user.getFirstName() + " " + user.getLastName());
+            userInfoResponseVo.setFirstName(user.getFirstName());
+            userInfoResponseVo.setLastName(user.getLastName());
+            userInfoResponseVo.setActiveRequests((int) requestRepository.findAllByAssignedUserId(user.getId()).stream().count());
+            assignee_response.add(userInfoResponseVo);
+        }
+        return ResponseEntity.ok(assignee_response);
+    }
+
+    @PutMapping("/admin/facility-head/{id}")
+    public ResponseEntity<?> updateFacilityHead(@PathVariable Integer id, @RequestBody RegisterUserRequestVo userRequestVo){
+        User user = userRepository.findById(id).get();
+        user.setFirstName(userRequestVo.getFirstName());
+        user.setLastName(userRequestVo.getLastName());
+        user.setFacilityId(userRequestVo.getFacilityId());
+        userRepository.save(user);
+        return ResponseEntity.ok(new MessageResponseVo(false, "User updated successfully"));
+    }
+
+    @PutMapping("/facility-head/assignee/{id}")
+    public ResponseEntity<?> updateAssignee(@PathVariable Integer id, @RequestBody RegisterUserRequestVo userRequestVo){
+        User user = userRepository.findById(id).get();
+        user.setFirstName(userRequestVo.getFirstName());
+        user.setLastName(userRequestVo.getLastName());
+        userRepository.save(user);
+        return ResponseEntity.ok(new MessageResponseVo(false, "Assignee updated successfully"));
+    }
+
+    @DeleteMapping("/admin/facility-head/{id}")
+    public ResponseEntity<?> deleteFacilityHead(@PathVariable Integer id){
+        User user = userRepository.findById(id).get();
+        userRepository.delete(user);
+        return ResponseEntity.ok(new MessageResponseVo(true, "Facility head deleted successfully"));
+    }
+
+}
