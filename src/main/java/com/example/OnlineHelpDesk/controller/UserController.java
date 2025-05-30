@@ -53,7 +53,8 @@ public class UserController {
     public ResponseEntity<?> getAssignee(Authentication authentication) {
         List<UserInfoResponseVo> assignee_response = new ArrayList<>();
         User facilityHead = (User) authentication.getPrincipal();
-        List<User> facility_worker = userRepository.findAllByRoleAndFacilityId(Role.ASSIGNEE, facilityHead.getFacilityId());
+        List<User> facility_worker = userRepository.findAllByRoleAndFacilityId(Role.ASSIGNEE,
+                facilityHead.getFacilityId());
         for (User user : facility_worker) {
             UserInfoResponseVo userInfoResponseVo = new UserInfoResponseVo();
             userInfoResponseVo.setId(user.getId());
@@ -61,14 +62,16 @@ public class UserController {
             userInfoResponseVo.setName(user.getFirstName() + " " + user.getLastName());
             userInfoResponseVo.setFirstName(user.getFirstName());
             userInfoResponseVo.setLastName(user.getLastName());
-            userInfoResponseVo.setActiveRequests((int) requestRepository.findAllByAssignedUserId(user.getId()).stream().count());
+            userInfoResponseVo
+                    .setActiveRequests((int) requestRepository.findAllByAssignedUserId(user.getId()).stream().count());
             assignee_response.add(userInfoResponseVo);
         }
         return ResponseEntity.ok(assignee_response);
     }
 
     @PutMapping("/admin/facility-head/{id}")
-    public ResponseEntity<?> updateFacilityHead(@PathVariable Integer id, @RequestBody RegisterUserRequestVo userRequestVo){
+    public ResponseEntity<?> updateFacilityHead(@PathVariable Integer id,
+            @RequestBody RegisterUserRequestVo userRequestVo) {
         User user = userRepository.findById(id).get();
         user.setFirstName(userRequestVo.getFirstName());
         user.setLastName(userRequestVo.getLastName());
@@ -78,7 +81,8 @@ public class UserController {
     }
 
     @PutMapping("/facility-head/assignee/{id}")
-    public ResponseEntity<?> updateAssignee(@PathVariable Integer id, @RequestBody RegisterUserRequestVo userRequestVo){
+    public ResponseEntity<?> updateAssignee(@PathVariable Integer id,
+            @RequestBody RegisterUserRequestVo userRequestVo) {
         User user = userRepository.findById(id).get();
         user.setFirstName(userRequestVo.getFirstName());
         user.setLastName(userRequestVo.getLastName());
@@ -87,7 +91,7 @@ public class UserController {
     }
 
     @DeleteMapping("/admin/facility-head/{id}")
-    public ResponseEntity<?> deleteFacilityHead(@PathVariable Integer id){
+    public ResponseEntity<?> deleteFacilityHead(@PathVariable Integer id) {
         User user = userRepository.findById(id).get();
         userRepository.delete(user);
         return ResponseEntity.ok(new MessageResponseVo(true, "Facility head deleted successfully"));
@@ -100,30 +104,43 @@ public class UserController {
         if (user.getRole() == Role.ADMIN) {
             dashboardDataVo.setTotalRequests(requestRepository.count());
             dashboardDataVo.setCloseRequests(requestRepository.countByStatus(Status.COMPLETED));
-            dashboardDataVo.setOpenRequests(requestRepository.count()-requestRepository.countByStatus(Status.COMPLETED));
+            dashboardDataVo
+                    .setOpenRequests(requestRepository.count() - requestRepository.countByStatus(Status.COMPLETED));
             dashboardDataVo.setUnAssignedRequests(requestRepository.countByStatus(Status.UNASSIGNED));
             dashboardDataVo.setInProgressRequests(requestRepository.countByStatus(Status.WORK_IN_PROGRESS));
         }
         if (user.getRole() == Role.FACILITY_HEAD) {
             dashboardDataVo.setTotalRequests(requestRepository.countAllByFacilityId(user.getFacilityId()));
-            dashboardDataVo.setCloseRequests(requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.COMPLETED));
-            dashboardDataVo.setOpenRequests(requestRepository.countAllByFacilityId(user.getFacilityId())-requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.COMPLETED));
-            dashboardDataVo.setUnAssignedRequests(requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.UNASSIGNED));
-            dashboardDataVo.setInProgressRequests(requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.WORK_IN_PROGRESS));
+            dashboardDataVo.setCloseRequests(
+                    requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.COMPLETED));
+            dashboardDataVo.setOpenRequests(requestRepository.countAllByFacilityId(user.getFacilityId())
+                    - requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.COMPLETED));
+            dashboardDataVo.setUnAssignedRequests(
+                    requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.UNASSIGNED));
+            dashboardDataVo.setInProgressRequests(
+                    requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.WORK_IN_PROGRESS));
         }
         if (user.getRole() == Role.ASSIGNEE) {
-            dashboardDataVo.setTotalRequests(requestRepository.countAllByAssignedUserId(user.getFacilityId()));
-            dashboardDataVo.setCloseRequests(requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.COMPLETED));
-            dashboardDataVo.setOpenRequests(requestRepository.countAllByAssignedUserId(user.getFacilityId())-requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.COMPLETED));
-            dashboardDataVo.setUnAssignedRequests(requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.UNASSIGNED));
-            dashboardDataVo.setInProgressRequests(requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.WORK_IN_PROGRESS));
+            dashboardDataVo.setTotalRequests(requestRepository.countAllByAssignedUserId(user.getId()));
+            dashboardDataVo
+                    .setCloseRequests(requestRepository.countByAssignedUserIdAndStatus(user.getId(), Status.COMPLETED));
+            dashboardDataVo.setOpenRequests(requestRepository.countAllByAssignedUserId(user.getId())
+                    - requestRepository.countByAssignedUserIdAndStatus(user.getId(), Status.COMPLETED));
+            dashboardDataVo.setUnAssignedRequests(
+                    requestRepository.countByAssignedUserIdAndStatus(user.getId(), Status.UNASSIGNED));
+            dashboardDataVo.setInProgressRequests(
+                    requestRepository.countByAssignedUserIdAndStatus(user.getId(), Status.WORK_IN_PROGRESS));
         }
         if (user.getRole() == Role.USER) {
             dashboardDataVo.setTotalRequests(requestRepository.countAllByUserId(user.getId()));
-            dashboardDataVo.setCloseRequests(requestRepository.countAllByUserIdAndStatus(user.getId(), Status.COMPLETED));
-            dashboardDataVo.setOpenRequests(requestRepository.countAllByUserId(user.getId())-requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.COMPLETED));
-            dashboardDataVo.setUnAssignedRequests(requestRepository.countAllByUserIdAndStatus(user.getId(), Status.UNASSIGNED));
-            dashboardDataVo.setInProgressRequests(requestRepository.countAllByUserIdAndStatus(user.getId(), Status.WORK_IN_PROGRESS));
+            dashboardDataVo
+                    .setCloseRequests(requestRepository.countAllByUserIdAndStatus(user.getId(), Status.COMPLETED));
+            dashboardDataVo.setOpenRequests(requestRepository.countAllByUserId(user.getId())
+                    - requestRepository.countAllByUserIdAndStatus(user.getId(), Status.COMPLETED));
+            dashboardDataVo.setUnAssignedRequests(
+                    requestRepository.countAllByUserIdAndStatus(user.getId(), Status.UNASSIGNED));
+            dashboardDataVo.setInProgressRequests(
+                    requestRepository.countAllByUserIdAndStatus(user.getId(), Status.WORK_IN_PROGRESS));
         }
         return ResponseEntity.ok(dashboardDataVo);
     }

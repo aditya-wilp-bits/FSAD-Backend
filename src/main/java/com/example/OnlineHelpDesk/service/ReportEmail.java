@@ -24,7 +24,7 @@ public class ReportEmail {
     @Autowired
     UserRepository userRepository;
 
-    @Scheduled(fixedRate = 180000)
+    @Scheduled(fixedRate = 3600000)
     public void sendPeriodicEmails() {
         List<User> admins = userRepository.findAllByRole(Role.ADMIN);
 
