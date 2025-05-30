@@ -1,9 +1,12 @@
 package com.example.OnlineHelpDesk.controller;
 
+import com.example.OnlineHelpDesk.model.Facility;
 import com.example.OnlineHelpDesk.model.Role;
 import com.example.OnlineHelpDesk.model.User;
+import com.example.OnlineHelpDesk.repository.FacilityRepository;
 import com.example.OnlineHelpDesk.repository.UserRepository;
 import com.example.OnlineHelpDesk.service.AuthenticationService;
+import com.example.OnlineHelpDesk.service.EmailService;
 import com.example.OnlineHelpDesk.vo.ChangePasswordVo;
 import com.example.OnlineHelpDesk.vo.LoginRequestVo;
 import com.example.OnlineHelpDesk.vo.MessageResponseVo;
@@ -28,6 +31,12 @@ public class AuthenticationController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private FacilityRepository facilityRepository;
 
     @PostMapping("/auth/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterUserRequestVo userRequest,
@@ -58,6 +67,20 @@ public class AuthenticationController {
         user.setUsername(userRequest.getEmail());
         user.setFacilityId(userRequest.getFacilityId());
         user.setRole(Role.FACILITY_HEAD);
+
+        Facility facility = facilityRepository.findById(userRequest.getFacilityId()).get();
+        String emailBody = "Dear " + userRequest.getFirstName() + " " + userRequest.getLastName() + ",\n\n"
+                + "Congratulations! You have been successfully registered as the Facility Head for the facility: "
+                + facility.getName() + ".\n\n"
+                + "Your account has been created with the following details:\n"
+                + "Username (Email): " + userRequest.getEmail() + "\n"
+                + "Temporary Password: " + userRequest.getPassword() + "\n\n"
+                + "Please log in to the system and change your password at your earliest convenience.\n\n"
+                + "If you have any questions or require assistance, feel free to reach out to the administration team.\n\n"
+                + "Best regards,\n"
+                + "Support Team";
+        emailService.sendEmail(userRequest.getEmail(), "Registered as Facility Head", emailBody);
+
         return ResponseEntity.ok(authService.register(user));
     }
 
@@ -75,6 +98,20 @@ public class AuthenticationController {
         user.setUsername(userRequest.getEmail());
         user.setFacilityId(facility_head.getFacilityId());
         user.setRole(Role.ASSIGNEE);
+
+        Facility facility = facilityRepository.findById(userRequest.getFacilityId()).get();
+        String emailBody = "Dear " + userRequest.getFirstName() + " " + userRequest.getLastName() + ",\n\n"
+                + "Congratulations! You have been successfully registered as the Facility Worker for the facility: "
+                + facility.getName() + ".\n\n"
+                + "Your account has been created with the following details:\n"
+                + "Username (Email): " + userRequest.getEmail() + "\n"
+                + "Temporary Password: " + userRequest.getPassword() + "\n\n"
+                + "Please log in to the system and change your password at your earliest convenience.\n\n"
+                + "If you have any questions or require assistance, feel free to reach out to the administration team.\n\n"
+                + "Best regards,\n"
+                + "Support Team";
+        emailService.sendEmail(userRequest.getEmail(), "Registered as Facility Worker", emailBody);
+
         return ResponseEntity.ok(authService.register(user));
     }
 

@@ -4,6 +4,7 @@ import com.example.OnlineHelpDesk.model.*;
 import com.example.OnlineHelpDesk.repository.FacilityRepository;
 import com.example.OnlineHelpDesk.repository.RequestRepository;
 import com.example.OnlineHelpDesk.repository.UserRepository;
+import com.example.OnlineHelpDesk.service.EmailService;
 import com.example.OnlineHelpDesk.vo.DashboardDataVo;
 import com.example.OnlineHelpDesk.vo.MessageResponseVo;
 import com.example.OnlineHelpDesk.vo.RegisterUserRequestVo;
@@ -126,5 +127,4 @@ public class UserController {
         }
         return ResponseEntity.ok(dashboardDataVo);
     }
-
 }
