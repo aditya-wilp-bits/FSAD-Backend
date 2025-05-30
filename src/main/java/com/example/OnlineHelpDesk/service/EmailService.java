@@ -17,8 +17,8 @@ public class EmailService {
             message.setTo(toEmail);
             message.setSubject(subject);
             message.setText(body);
-            message.setFrom("your-email@gmail.com");
-
+            message.setFrom("no-reply@onlineHelpdesk.com");
+            message.setReplyTo("admin@onlineHelpdesk.com");
             mailSender.send(message);
             return "Email sent successfully!";
         } catch (Exception e) {

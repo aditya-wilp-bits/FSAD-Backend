@@ -354,7 +354,7 @@ public class RequestController {
                 request.getTitle(),
                 assignedUser != null ? "assigned to " + assignedUser.getFirstName() + " " + assignedUser.getLastName() : "unassigned, A new worker will be assigned soon"
         );
-        emailService.sendEmail(createdUser.getUsername(), "Request Closed Successfully", userEmailBody);
+        emailService.sendEmail(createdUser.getUsername(), assignedUser != null ? "Request Assigned" : "Request Unassigned", userEmailBody);
 
         List<User> facilityHead = userRepository.findAllByRoleAndFacilityId(Role.FACILITY_HEAD, request.getFacilityId());
         for (User facilityHeadUser : facilityHead) {
