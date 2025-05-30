@@ -1,12 +1,10 @@
 package com.example.OnlineHelpDesk.controller;
 
-import com.example.OnlineHelpDesk.model.Facility;
-import com.example.OnlineHelpDesk.model.Request;
-import com.example.OnlineHelpDesk.model.Role;
-import com.example.OnlineHelpDesk.model.User;
+import com.example.OnlineHelpDesk.model.*;
 import com.example.OnlineHelpDesk.repository.FacilityRepository;
 import com.example.OnlineHelpDesk.repository.RequestRepository;
 import com.example.OnlineHelpDesk.repository.UserRepository;
+import com.example.OnlineHelpDesk.vo.DashboardDataVo;
 import com.example.OnlineHelpDesk.vo.MessageResponseVo;
 import com.example.OnlineHelpDesk.vo.RegisterUserRequestVo;
 import com.example.OnlineHelpDesk.vo.UserInfoResponseVo;
@@ -92,6 +90,41 @@ public class UserController {
         User user = userRepository.findById(id).get();
         userRepository.delete(user);
         return ResponseEntity.ok(new MessageResponseVo(true, "Facility head deleted successfully"));
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboardData(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        DashboardDataVo dashboardDataVo = new DashboardDataVo();
+        if (user.getRole() == Role.ADMIN) {
+            dashboardDataVo.setTotalRequests(requestRepository.count());
+            dashboardDataVo.setCloseRequests(requestRepository.countByStatus(Status.COMPLETED));
+            dashboardDataVo.setOpenRequests(requestRepository.count()-requestRepository.countByStatus(Status.COMPLETED));
+            dashboardDataVo.setUnAssignedRequests(requestRepository.countByStatus(Status.UNASSIGNED));
+            dashboardDataVo.setInProgressRequests(requestRepository.countByStatus(Status.WORK_IN_PROGRESS));
+        }
+        if (user.getRole() == Role.FACILITY_HEAD) {
+            dashboardDataVo.setTotalRequests(requestRepository.countAllByFacilityId(user.getFacilityId()));
+            dashboardDataVo.setCloseRequests(requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.COMPLETED));
+            dashboardDataVo.setOpenRequests(requestRepository.countAllByFacilityId(user.getFacilityId())-requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.COMPLETED));
+            dashboardDataVo.setUnAssignedRequests(requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.UNASSIGNED));
+            dashboardDataVo.setInProgressRequests(requestRepository.countAllByFacilityIdAndStatus(user.getFacilityId(), Status.WORK_IN_PROGRESS));
+        }
+        if (user.getRole() == Role.ASSIGNEE) {
+            dashboardDataVo.setTotalRequests(requestRepository.countAllByAssignedUserId(user.getFacilityId()));
+            dashboardDataVo.setCloseRequests(requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.COMPLETED));
+            dashboardDataVo.setOpenRequests(requestRepository.countAllByAssignedUserId(user.getFacilityId())-requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.COMPLETED));
+            dashboardDataVo.setUnAssignedRequests(requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.UNASSIGNED));
+            dashboardDataVo.setInProgressRequests(requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.WORK_IN_PROGRESS));
+        }
+        if (user.getRole() == Role.USER) {
+            dashboardDataVo.setTotalRequests(requestRepository.countAllByUserId(user.getId()));
+            dashboardDataVo.setCloseRequests(requestRepository.countAllByUserIdAndStatus(user.getId(), Status.COMPLETED));
+            dashboardDataVo.setOpenRequests(requestRepository.countAllByUserId(user.getId())-requestRepository.countByAssignedUserIdAndStatus(user.getFacilityId(), Status.COMPLETED));
+            dashboardDataVo.setUnAssignedRequests(requestRepository.countAllByUserIdAndStatus(user.getId(), Status.UNASSIGNED));
+            dashboardDataVo.setInProgressRequests(requestRepository.countAllByUserIdAndStatus(user.getId(), Status.WORK_IN_PROGRESS));
+        }
+        return ResponseEntity.ok(dashboardDataVo);
     }
 
 }

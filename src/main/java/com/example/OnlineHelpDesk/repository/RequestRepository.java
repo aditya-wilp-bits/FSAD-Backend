@@ -20,6 +20,18 @@ public interface RequestRepository extends JpaRepository<Request, Integer> {
 
     Long countByStatus(Status status);
 
+    Long countByAssignedUserIdAndStatus(Integer userId, Status status);
+
+    Long countAllByUserIdAndStatus(Integer userId, Status status);
+
+    Long countAllByFacilityIdAndStatus(Integer facilityId, Status status);
+
+    Long countAllByAssignedUserId(Integer userId);
+
+    Long countAllByUserId(Integer userId);
+
+    Long countAllByFacilityId(Integer facilityId);
+
     @Query("""
         SELECT r FROM Request r 
         WHERE r.createdAt BETWEEN :startDate AND :endDate
