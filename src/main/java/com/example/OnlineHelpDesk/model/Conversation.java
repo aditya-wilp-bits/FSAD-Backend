@@ -26,5 +26,6 @@ public class Conversation {
 
     private String message;
 
+    @Column(columnDefinition = "datetime")
     private Date createdAt;
 }

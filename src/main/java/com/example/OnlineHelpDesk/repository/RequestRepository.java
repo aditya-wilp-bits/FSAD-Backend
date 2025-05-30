@@ -1,6 +1,7 @@
 package com.example.OnlineHelpDesk.repository;
 
 import com.example.OnlineHelpDesk.model.Request;
+import com.example.OnlineHelpDesk.model.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -16,6 +17,8 @@ public interface RequestRepository extends JpaRepository<Request, Integer> {
     List<Request> findAllByFacilityId(Integer facilityId);
 
     List<Request> findAllByAssignedUserId(Integer userId);
+
+    Long countByStatus(Status status);
 
     @Query("""
         SELECT r FROM Request r 

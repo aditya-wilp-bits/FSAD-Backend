@@ -29,6 +29,7 @@ public class Request {
 
     private String description;
 
+    @Column(columnDefinition = "datetime")
     private Date createdAt;
 
     @Enumerated(value = EnumType.STRING)

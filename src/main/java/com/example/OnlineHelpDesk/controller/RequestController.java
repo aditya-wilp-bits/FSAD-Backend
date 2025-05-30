@@ -5,6 +5,7 @@ import com.example.OnlineHelpDesk.repository.ConversationRepository;
 import com.example.OnlineHelpDesk.repository.FacilityRepository;
 import com.example.OnlineHelpDesk.repository.RequestRepository;
 import com.example.OnlineHelpDesk.repository.UserRepository;
+import com.example.OnlineHelpDesk.service.EmailService;
 import com.example.OnlineHelpDesk.vo.*;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -29,6 +31,9 @@ public class RequestController {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    EmailService emailService;
 
     @Autowired
     ConversationRepository conversationRepository;
@@ -50,6 +55,58 @@ public class RequestController {
             request.setStatus(Status.UNASSIGNED);
             request.setCreatedAt(new Date());
             requestRepository.save(request);
+
+            Facility facility = facilityRepository.findById(serviceRequest.getFacilityId()).get();
+
+            String userEmailBody = String.format(
+                    "Dear %s,\n\n" +
+                            "Your request has been created successfully with the following details:\n\n" +
+                            "- Facility : %s\n" +
+                            "- Title: %s\n" +
+                            "- Description: %s\n" +
+                            "- Severity: %s\n" +
+                            "- Status: %s\n" +
+                            "- Created At: %s\n\n" +
+                            "Our team will review your request and take the necessary action shortly.\n\n" +
+                            "Thank you for reaching out.\n\n" +
+                            "Best regards,\n" +
+                            "Support Team",
+                    user.getFirstName() + " " + user.getLastName(),
+                    facility.getName(),
+                    request.getTitle(),
+                    request.getDescription(),
+                    request.getSeverity(),
+                    request.getStatus(),
+                    request.getCreatedAt().toString()
+            );
+
+            String facilityHeadEmailBody =  String.format(
+                    "Dear Facility Head,\n\n" +
+                            "A new service request has been submitted by %s with the following details:\n\n" +
+                            "- Title: %s\n" +
+                            "- Description: %s\n" +
+                            "- Severity: %s\n" +
+                            "- Status: %s\n" +
+                            "- Created At: %s\n\n" +
+                            "Please review and take the appropriate action.\n\n" +
+                            "Best regards,\n" +
+                            "Service Request System",
+                    user.getFirstName() + " " + user.getLastName(),
+                    request.getTitle(),
+                    request.getDescription(),
+                    request.getSeverity(),
+                    request.getStatus(),
+                    request.getCreatedAt().toString()
+            );
+
+
+            emailService.sendEmail(user.getUsername(), "Request Created Successfully", userEmailBody);
+
+            List<User> facilityHead = userRepository.findAllByRoleAndFacilityId(Role.FACILITY_HEAD, request.getFacilityId());
+            for (User facilityHeadUser : facilityHead) {
+                emailService.sendEmail(facilityHeadUser.getUsername(), "New Request have been Created", facilityHeadEmailBody);
+            }
+
             return ResponseEntity.ok().body(new MessageResponseVo(false, "Request has been created."));
         }
         return ResponseEntity.badRequest().body(new MessageResponseVo(true, "Facility does not exist."));
@@ -109,6 +166,45 @@ public class RequestController {
         request.setStatus(Status.COMPLETED);
         requestRepository.save(request);
 
+        User createdUser = userRepository.findById(request.getUserId()).get();
+
+        String assigneeEmailBody = String.format(
+                "Dear %s,\n\n" +
+                        "You have success closed the request with the Title %s created by \n\n" +
+                        "Best regards,\n" +
+                        "Support Team",
+                user.getFirstName() + " " + user.getLastName(),
+                request.getTitle(),
+                createdUser.getFirstName() + " " + createdUser.getLastName()
+        );
+        emailService.sendEmail(user.getUsername(), "Request Closed Successfully", assigneeEmailBody);
+
+        String userEmailBody = String.format(
+                "Dear %s,\n\n" +
+                        "Your request with the Title %s has been successfully closed by %s\n\n" +
+                        "Best regards,\n" +
+                        "Support Team",
+                createdUser.getFirstName() + " " + createdUser.getLastName(),
+                request.getTitle(),
+                user.getFirstName() + " " + user.getLastName()
+        );
+        emailService.sendEmail(createdUser.getUsername(), "Request Closed Successfully", userEmailBody);
+
+        List<User> facilityHead = userRepository.findAllByRoleAndFacilityId(Role.FACILITY_HEAD, request.getFacilityId());
+        for (User facilityHeadUser : facilityHead) {
+            String facilityHeadEmailBody = String.format(
+                    "Dear %s,\n\n" +
+                            "The request with the Title %s, created by %s, has been successfully closed by %s\n\n" +
+                            "Best regards,\n" +
+                            "Support Team",
+                    facilityHeadUser.getFirstName() + " " + facilityHeadUser.getLastName(),
+                    request.getTitle(),
+                    createdUser.getFirstName() + " " + createdUser.getLastName(),
+                    user.getFirstName() + " " + user.getLastName()
+            );
+            emailService.sendEmail(facilityHeadUser.getUsername(), "Request Closed", facilityHeadEmailBody);
+        }
+
         return ResponseEntity.ok().body(new MessageResponseVo(true, "Request has been updated."));
     }
 
@@ -127,6 +223,34 @@ public class RequestController {
         Request request = requestRepository.findById(id).get();
         request.setStatus(Status.REJECTED);
         requestRepository.save(request);
+
+        User createdUser = userRepository.findById(request.getUserId()).get();
+
+        String userEmailBody = String.format(
+                "Dear %s,\n\n" +
+                        "Your request with the Title %s has been rejected by %s\n\n" +
+                        "Best regards,\n" +
+                        "Support Team",
+                createdUser.getFirstName() + " " + createdUser.getLastName(),
+                request.getTitle(),
+                user.getFirstName() + " " + user.getLastName()
+        );
+        emailService.sendEmail(createdUser.getUsername(), "Request Rejected", userEmailBody);
+
+        List<User> facilityHead = userRepository.findAllByRoleAndFacilityId(Role.FACILITY_HEAD, request.getFacilityId());
+        for (User facilityHeadUser : facilityHead) {
+            String facilityHeadEmailBody = String.format(
+                    "Dear %s,\n\n" +
+                            "The request with the Title %s, created by %s, has been rejected closed by %s\n\n" +
+                            "Best regards,\n" +
+                            "Support Team",
+                    facilityHeadUser.getFirstName() + " " + facilityHeadUser.getLastName(),
+                    request.getTitle(),
+                    createdUser.getFirstName() + " " + createdUser.getLastName(),
+                    Objects.equals(facilityHeadUser.getId(), user.getId()) ? "you" : user.getFirstName() + " " + user.getLastName()
+            );
+            emailService.sendEmail(facilityHeadUser.getUsername(), "Request Rejected", facilityHeadEmailBody);
+        }
 
         return ResponseEntity.ok().body(new MessageResponseVo(true, "Request has been updated."));
     }
@@ -147,6 +271,45 @@ public class RequestController {
         request.setStatus(Status.WORK_IN_PROGRESS);
         requestRepository.save(request);
 
+        User createdUser = userRepository.findById(request.getUserId()).get();
+
+        String assigneeEmailBody = String.format(
+                "Dear %s,\n\n" +
+                        "You have success updated the status to In-Progress of the request with the Title %s created by \n\n" +
+                        "Best regards,\n" +
+                        "Support Team",
+                user.getFirstName() + " " + user.getLastName(),
+                request.getTitle(),
+                createdUser.getFirstName() + " " + createdUser.getLastName()
+        );
+        emailService.sendEmail(user.getUsername(), "Request Status Updated", assigneeEmailBody);
+
+        String userEmailBody = String.format(
+                "Dear %s,\n\n" +
+                        "Your request with the Title %s has moved to In-Progress by %s\n\n" +
+                        "Best regards,\n" +
+                        "Support Team",
+                createdUser.getFirstName() + " " + createdUser.getLastName(),
+                request.getTitle(),
+                user.getFirstName() + " " + user.getLastName()
+        );
+        emailService.sendEmail(createdUser.getUsername(), "Request Status Update", userEmailBody);
+
+        List<User> facilityHead = userRepository.findAllByRoleAndFacilityId(Role.FACILITY_HEAD, request.getFacilityId());
+        for (User facilityHeadUser : facilityHead) {
+            String facilityHeadEmailBody = String.format(
+                    "Dear %s,\n\n" +
+                            "The request with the Title %s, created by %s, has been moved to In-Progress by %s\n\n" +
+                            "Best regards,\n" +
+                            "Support Team",
+                    facilityHeadUser.getFirstName() + " " + facilityHeadUser.getLastName(),
+                    request.getTitle(),
+                    createdUser.getFirstName() + " " + createdUser.getLastName(),
+                    user.getFirstName() + " " + user.getLastName()
+            );
+            emailService.sendEmail(facilityHeadUser.getUsername(), "Request Status Updated", facilityHeadEmailBody);
+        }
+
         return ResponseEntity.ok().body(new MessageResponseVo(true, "Request has been updated."));
     }
 
@@ -165,6 +328,49 @@ public class RequestController {
         }
         requestRepository.save(request);
 
+        User createdUser = userRepository.findById(request.getUserId()).get();
+        User assignedUser = null;
+
+        if (request.getStatus() == Status.ASSIGNED) {
+            assignedUser = userRepository.findById(assignRequestVo.getAssignedUserId()).get();
+            String assigneeEmailBody = String.format(
+                    "Dear %s,\n\n" +
+                            "You have assigned a new request with the Title %s created by \n\n" +
+                            "Best regards,\n" +
+                            "Support Team",
+                    assignedUser.getFirstName() + " " + assignedUser.getLastName(),
+                    request.getTitle(),
+                    createdUser.getFirstName() + " " + createdUser.getLastName()
+            );
+            emailService.sendEmail(assignedUser.getUsername(), "Assigned a new Request", assigneeEmailBody);
+        }
+
+        String userEmailBody = String.format(
+                "Dear %s,\n\n" +
+                        "Your request with the Title %s has been %s\n\n" +
+                        "Best regards,\n" +
+                        "Support Team",
+                createdUser.getFirstName() + " " + createdUser.getLastName(),
+                request.getTitle(),
+                assignedUser != null ? "assigned to " + assignedUser.getFirstName() + " " + assignedUser.getLastName() : "unassigned, A new worker will be assigned soon"
+        );
+        emailService.sendEmail(createdUser.getUsername(), "Request Closed Successfully", userEmailBody);
+
+        List<User> facilityHead = userRepository.findAllByRoleAndFacilityId(Role.FACILITY_HEAD, request.getFacilityId());
+        for (User facilityHeadUser : facilityHead) {
+            String facilityHeadEmailBody = String.format(
+                    "Dear %s,\n\n" +
+                            "The request with the Title %s, created by %s, has been \n\n" +
+                            "Best regards,\n" +
+                            "Support Team",
+                    facilityHeadUser.getFirstName() + " " + facilityHeadUser.getLastName(),
+                    request.getTitle(),
+                    createdUser.getFirstName() + " " + createdUser.getLastName(),
+                    assignedUser != null ? "assigned to " + assignedUser.getFirstName() + " " + assignedUser.getLastName() : "unassigned, Please assign a new worker soon"
+            );
+            emailService.sendEmail(facilityHeadUser.getUsername(), "Request Closed", facilityHeadEmailBody);
+        }
+
         return ResponseEntity.ok().body(new MessageResponseVo(true, "Request has been updated."));
     }
 
@@ -174,6 +380,31 @@ public class RequestController {
         List<Conversation> conversations = conversationRepository.findAllByRequestId(id);
         conversationRepository.deleteAll(conversations);
         Request request = requestRepository.findById(id).get();
+
+        String userEmailBody = String.format(
+                "Dear %s,\n\n" +
+                        "Your request with the Title %s has been deleted successfully\n\n" +
+                        "Best regards,\n" +
+                        "Support Team",
+                user.getFirstName() + " " + user.getLastName(),
+                request.getTitle()
+        );
+        emailService.sendEmail(user.getUsername(), "Request Deleted Successfully", userEmailBody);
+
+        List<User> facilityHead = userRepository.findAllByRoleAndFacilityId(Role.FACILITY_HEAD, request.getFacilityId());
+        for (User facilityHeadUser : facilityHead) {
+            String facilityHeadEmailBody = String.format(
+                    "Dear %s,\n\n" +
+                            "The request with the Title %s, created by %s, has been deleted\n\n" +
+                            "Best regards,\n" +
+                            "Support Team",
+                    facilityHeadUser.getFirstName() + " " + facilityHeadUser.getLastName(),
+                    request.getTitle(),
+                    user.getFirstName() + " " + user.getLastName()
+            );
+            emailService.sendEmail(facilityHeadUser.getUsername(), "Request Deleted", facilityHeadEmailBody);
+        }
+
         requestRepository.delete(request);
         return ResponseEntity.ok().body(new MessageResponseVo(true, "Request has been deleted."));
     }
